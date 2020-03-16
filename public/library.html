@@ -111,13 +111,13 @@
         methods: {
           addBook: async function() {
             if (this.idFlag) {
-              this.books.some(item => {
-                if (item.id === this.id) {
-                  item.name = this.name;
-                  // 终止遍历
-                  return true;
-                }
-              });
+              // 编辑图书
+              let ret = await axios.put("books/" + this.id, {
+                name: this.name
+              }).data;
+              if (ret.status === 200) {
+                this.queryData();
+              }
               this.idFlag = false;
             } else {
               // 添加图书
@@ -132,11 +132,12 @@
             this.id = "";
             this.name = "";
           },
-          edit: function(id) {
-            book = this.books.filter(item => item.id === id)[0];
-            this.id = book.id;
-            this.name = book.name;
+          edit: async function(id) {
+            // 根据id查出对应的图书信息
             this.idFlag = true;
+            let ret = await axios.get("books/" + id).data;
+            this.id = ret.id;
+            this.name = ret.name;
           },
           remove: function(id) {
             var idx = this.books.findIndex(item => id === item.id);
