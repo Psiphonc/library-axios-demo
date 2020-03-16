@@ -114,7 +114,7 @@
               // 编辑图书
               let ret = await axios.put("books/" + this.id, {
                 name: this.name
-              }).data;
+              });
               if (ret.status === 200) {
                 this.queryData();
               }
@@ -135,13 +135,16 @@
           edit: async function(id) {
             // 根据id查出对应的图书信息
             this.idFlag = true;
-            let ret = await axios.get("books/" + id).data;
+            let ret = await axios.get("books/" + id);
+            ret = ret.data;
             this.id = ret.id;
             this.name = ret.name;
           },
-          remove: function(id) {
-            var idx = this.books.findIndex(item => id === item.id);
-            this.books.splice(idx, 1);
+          remove: async function(id) {
+            let ret = await axios.delete("books/" + id);
+            if (ret.status === 200) {
+              this.queryData();
+            }
           },
           queryData: async function() {
             // 调用后台接口获取图书列表数据
