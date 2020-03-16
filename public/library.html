@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      .title > td {
+        font-weight: bolder;
+        font-size: 30px;
+      }
+      .head {
+        background-color: orange;
+      }
+      .container > table {
+        width: 600px;
+      }
+      .container > table tr:nth-child(2) {
+        text-align: center;
+      }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="/js/axios.js"></script>
+    <title>图书管理</title>
+  </head>
+  <body>
+    <div id="app">
+      <div class="container ">
+        <table>
+          <tr class="title">
+            <td colspan="4" align="center">图书管理</td>
+          </tr>
+          <tr class="head">
+            <td colspan="4">
+              <label for="id">编号</label>
+              <input type="text" v-model.lazy="id" :disabled="idFlag" v-focus />
+              <label for="name">名称</label>
+              <input type="text" v-model.lazy="name" />
+              <button @click="addBook" :disabled="addFlag">提交</button>
+              <span style="float: right;padding-right: 40px;">
+                <span>图书总数：</span>
+                <span>{{bookCnt}}</span>
+              </span>
+            </td>
+          </tr>
+          <tr class="head">
+            <th align="center">编号</th>
+            <th align="center">名称</th>
+            <th align="center">时间</th>
+            <th align="center">操作</th>
+          </tr>
+          <tr :key="item.id" v-for="item in books">
+            <td align="center">{{item.id}}</td>
+            <td align="center">{{item.name}}</td>
+            <td align="center">{{item.date | dateFormat("yyyy-MM-dd")}}</td>
+            <td align="center">
+              <a href="" @click.prevent="edit(item.id)">修改</a>
+              <span>|</span>
+              <a href="" @click.prevent="remove(item.id)">删除</a>
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+    <script>
+      axios.defaults.baseURL = "http://localhost:3000/";
+      // 自定义指令
+      Vue.directive("focus", {
+        inserted: function(el) {
+          el.focus();
+        }
+      });
+      // 过滤器
+      Vue.filter("dateFormat", function(val, fmt) {
+        let getDate = new Date(val);
+        let o = {
+          "M+": getDate.getMonth() + 1,
+          "d+": getDate.getDate(),
+          "h+": getDate.getHours(),
+          "m+": getDate.getMinutes(),
+          "s+": getDate.getSeconds(),
+          "q+": Math.floor((getDate.getMonth() + 3) / 3),
+          S: getDate.getMilliseconds()
+        };
+        if (/(y+)/.test(fmt)) {
+          fmt = fmt.replace(
+            RegExp.$1,
+            (getDate.getFullYear() + "").substr(4 - RegExp.$1.length)
+          );
+        }
+        for (let k in o) {
+          if (new RegExp("(" + k + ")").test(fmt)) {
+            fmt = fmt.replace(
+              RegExp.$1,
+              RegExp.$1.length === 1
+                ? o[k]
+                : ("00" + o[k]).substr(("" + o[k]).length)
+            );
+          }
+        }
+        return fmt;
+      });
+      var vm = new Vue({
+        el: "#app",
+        data: {
+          id: "",
+          name: "",
+          idFlag: false,
+          addFlag: false,
+          books: []
+        },
+        methods: {
+          addBook: function() {
+            if (this.idFlag) {
+              this.books.some(item => {
+                if (item.id === this.id) {
+                  item.name = this.name;
+                  // 终止遍历
+                  return true;
+                }
+              });
+              this.idFlag = false;
+            } else {
+              // 添加图书
+              var book = {};
+              book.id = this.id;
+              book.name = this.name;
+              book.date = "";
+              this.books.push(book);
+            }
+            this.id = "";
+            this.name = "";
+          },
+          edit: function(id) {
+            book = this.books.filter(item => item.id === id)[0];
+            this.id = book.id;
+            this.name = book.name;
+            this.idFlag = true;
+          },
+          remove: function(id) {
+            var idx = this.books.findIndex(item => id === item.id);
+            this.books.splice(idx, 1);
+          },
+          queryData: async function() {
+            // 调用后台接口获取图书列表数据
+            let ret = await axios.get("books");
+            this.books = ret.data;
+          }
+        },
+        // 计算属性
+        computed: {
+          bookCnt: function() {
+            return this.books.length;
+          }
+        },
+        // 侦听器
+        watch: {
+          // 检测输入的id是否有重复
+          id: function(newid) {
+            var exist = this.books.some(item => item.id === parseInt(newid));
+            console.log(exist);
+            if (exist && !this.idFlag) {
+              this.addFlag = true;
+            } else {
+              this.addFlag = false;
+            }
+          }
+        },
+        // 生命周期钩子函数
+        mounted: function() {
+          // mounted一旦被触发，模版就已经可用了
+          // 此时一般从后台获取数据，先填充
+          this.queryData();
+        }
+      });
+    </script>
+  </body>
+</html>
