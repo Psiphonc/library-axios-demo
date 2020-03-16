@@ -32,7 +32,7 @@
           <tr class="head">
             <td colspan="4">
               <label for="id">编号</label>
-              <input type="text" v-model.lazy="id" :disabled="idFlag" v-focus />
+              <input type="text" v-model.lazy="id" :disabled="true" v-focus />
               <label for="name">名称</label>
               <input type="text" v-model.lazy="name" />
               <button @click="addBook" :disabled="addFlag">提交</button>
@@ -109,7 +109,7 @@
           books: []
         },
         methods: {
-          addBook: function() {
+          addBook: async function() {
             if (this.idFlag) {
               this.books.some(item => {
                 if (item.id === this.id) {
@@ -121,11 +121,13 @@
               this.idFlag = false;
             } else {
               // 添加图书
-              var book = {};
-              book.id = this.id;
-              book.name = this.name;
-              book.date = "";
-              this.books.push(book);
+              let ret = await axios.post("books", {
+                name: this.name
+              });
+              if (ret.status == 200) {
+                // 添加成功 重新加载列表数据
+                this.queryData();
+              }
             }
             this.id = "";
             this.name = "";
@@ -154,11 +156,10 @@
         },
         // 侦听器
         watch: {
-          // 检测输入的id是否有重复
-          id: function(newid) {
-            var exist = this.books.some(item => item.id === parseInt(newid));
-            console.log(exist);
-            if (exist && !this.idFlag) {
+          // 检测输入的图书名是否有重复
+          name: async function(newname) {
+            let ret = await axios.get("/books/book/" + newname);
+            if (ret.data.status === 1) {
               this.addFlag = true;
             } else {
               this.addFlag = false;
